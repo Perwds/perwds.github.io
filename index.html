@@ -9,9 +9,25 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
       text-align: center;
+
+      /* Animated background */
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #0ea5e9, #38bdf8);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
     }
 
     header {
@@ -66,8 +82,9 @@
 <body>
 
   <header>
-    <h1>Hi, I'm [Your Name]</h1>
+      <h1>Hi, I'm Perwd</h1>
     <p>Welcome to my website 🚀</p>
+    <p>I make mincraft stuff</p>
     <a class="btn" href="#projects">View Projects</a>
   </header>
 
@@ -81,12 +98,6 @@
     <div class="card">
       Project 2 - Add something here
     </div>
-
-  </section>
-
-  <footer>
-    © 2026 My Website
-  </footer>
 
 </body>
 </html>
