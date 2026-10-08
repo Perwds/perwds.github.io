@@ -148,3 +148,1259 @@ a { color: inherit; }
 .by { font-size: .82rem; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .src-tag { font: 600 .62rem var(--font-mono); text-transform: uppercase; letter-spacing: .06em; padding: 1px 5px; border-radius: 3px; color: var(--surface); }
 .src-tag.modrinth { background: var(--mr); } .src-tag.curseforge { background: var(--cf); }
+.summary { margin: 0; font-size: .9rem; color: var(--ink); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font: .8rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 500; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: .74rem; padding: 1px 7px; border-radius: 3px; background: var(--sunk); color: var(--muted); text-transform: capitalize; }
+.tag.loader { background: transparent; border: 1px solid var(--line); }
+.tag.hit { background: var(--accent-soft); color: var(--accent); font-weight: 600; text-transform: none; }
+.card-foot { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+.card-foot .btn { padding: 4px 10px; font-size: .82rem; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px; text-align: center; color: var(--muted); }
+.more-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); padding: 0; width: min(640px, calc(100vw - 32px)); max-height: min(80vh, 760px); }
+dialog::backdrop { background: rgb(0 0 0 / .45); }
+.dlg { display: flex; flex-direction: column; max-height: min(80vh, 760px); }
+.dlg-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.dlg-head h2 { margin: 0; font: 600 1.15rem var(--font-display); overflow-wrap: anywhere; }
+.dlg-body { padding: 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.modrow { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: .9rem; min-width: 0; }
+.modrow img, .modrow .noimg { width: 24px; height: 24px; border-radius: 4px; flex: none; background: var(--sunk); object-fit: cover; }
+.modrow a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+.modrow a:hover { text-decoration: underline; }
+.modrow em { font: .72rem var(--font-mono); color: var(--muted); font-style: normal; }
+.modrow.hit a { color: var(--accent); font-weight: 600; }
+.modrow button { border: 1px solid var(--line); background: transparent; border-radius: 4px; font-size: .72rem; padding: 1px 6px; cursor: pointer; color: var(--muted); white-space: nowrap; }
+.modrow button:hover { color: var(--accent); border-color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .85em; background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    Packfinder <small>Modrinth + CurseForge</small>
+  </div>
+  <div class="seg" role="group" aria-label="Where to search">
+    <button type="button" data-src="modrinth" aria-pressed="true"><span class="dot mr"></span>Modrinth</button>
+    <button type="button" data-src="curseforge" aria-pressed="false"><span class="dot cf"></span>CurseForge</button>
+    <button type="button" data-src="both" aria-pressed="false"><span class="dot mr"></span><span class="dot cf" style="margin-left:-5px"></span>Both</button>
+  </div>
+  <button type="button" class="btn ghost" id="open-settings">CurseForge key</button>
+</header>
+
+<main class="layout">
+  <details class="filters" id="filters" open>
+    <summary>Filters</summary>
+    <form id="search-form" autocomplete="off">
+      <div class="group">
+        <label class="label" for="q">Search</label>
+        <input class="field" id="q" type="search" placeholder="Name or keywords">
+      </div>
+
+      <div class="group">
+        <label class="label" for="type">Looking for</label>
+        <select class="field" id="type">
+          <option value="modpack" selected>Modpacks</option>
+          <option value="mod">Mods</option>
+          <option value="shader">Shaders</option>
+          <option value="resourcepack">Resource packs</option>
+          <option value="datapack">Data packs</option>
+          <option value="plugin">Plugins</option>
+        </select>
+      </div>
+
+      <div class="feature">
+        <div class="group">
+          <div class="group-head">
+            <span class="label" id="inc-label">Must contain</span>
+            <span class="mini-seg" role="group" aria-label="How to match">
+              <button type="button" data-match="all" aria-pressed="true">ALL</button>
+              <button type="button" data-match="any" aria-pressed="false">ANY</button>
+            </span>
+          </div>
+          <div class="picker">
+            <input class="field" id="inc-input" type="search" placeholder="Add a mod, e.g. Create" aria-labelledby="inc-label">
+            <div class="pick-list" id="inc-list" hidden></div>
+          </div>
+          <div class="chips" id="inc-chips"></div>
+        </div>
+        <div class="group">
+          <span class="label" id="exc-label">Must not contain</span>
+          <div class="picker">
+            <input class="field" id="exc-input" type="search" placeholder="Add a mod, e.g. OptiFine" aria-labelledby="exc-label">
+            <div class="pick-list" id="exc-list" hidden></div>
+          </div>
+          <div class="chips" id="exc-chips"></div>
+        </div>
+        <div class="group">
+          <span class="label">Number of mods</span>
+          <div class="row2">
+            <input class="field" id="min-mods" type="number" min="0" placeholder="Min" aria-label="Minimum number of mods">
+            <input class="field" id="max-mods" type="number" min="0" placeholder="Max" aria-label="Maximum number of mods">
+          </div>
+        </div>
+        <p class="hint">Checks each result's newest version for these mods. For mods, this means dependencies.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Minecraft</span>
+        <div class="row2">
+          <select class="field" id="version" aria-label="Game version"><option value="">Any version</option></select>
+          <select class="field" id="loader" aria-label="Mod loader">
+            <option value="">Any loader</option>
+            <option value="fabric">Fabric</option>
+            <option value="forge">Forge</option>
+            <option value="neoforge">NeoForge</option>
+            <option value="quilt">Quilt</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="snapshots"> Show snapshot versions</label>
+      </div>
+
+      <div class="group">
+        <span class="label">Categories <span style="text-transform:none;letter-spacing:0">(Modrinth, all must match)</span></span>
+        <div class="cats" id="cats"><span class="hint">Loading…</span></div>
+      </div>
+
+      <div class="group">
+        <label class="label" for="env">Where it runs <span style="text-transform:none;letter-spacing:0">(Modrinth)</span></label>
+        <select class="field" id="env">
+          <option value="">Anywhere</option>
+          <option value="server">Works on a server</option>
+          <option value="client-only">Client-side only</option>
+          <option value="server-only">Server-side only</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <span class="label">Downloads</span>
+        <div class="row2">
+          <input class="field" id="min-dl" type="number" min="0" placeholder="At least" aria-label="Minimum downloads">
+          <input class="field" id="max-dl" type="number" min="0" placeholder="At most" aria-label="Maximum downloads">
+        </div>
+        <p class="hint">Set "At most" to find hidden gems.</p>
+      </div>
+
+      <div class="group">
+        <label class="label" for="updated">Last updated</label>
+        <select class="field" id="updated">
+          <option value="">Any time</option>
+          <option value="30">Within 30 days</option>
+          <option value="90">Within 3 months</option>
+          <option value="180">Within 6 months</option>
+          <option value="365">Within a year</option>
+          <option value="730">Within 2 years</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label class="label" for="nowords">Hide if name or summary has</label>
+        <input class="field" id="nowords" type="text" placeholder="e.g. skyblock, rpg">
+      </div>
+
+      <label class="check"><input type="checkbox" id="oss"> Open source only (Modrinth)</label>
+
+      <div class="group">
+        <div class="row2">
+          <div class="group">
+            <label class="label" for="sort">Search order</label>
+            <select class="field" id="sort">
+              <option value="relevance">Relevance</option>
+              <option value="downloads" selected>Downloads</option>
+              <option value="follows">Follows</option>
+              <option value="newest">Newest</option>
+              <option value="updated">Recently updated</option>
+            </select>
+          </div>
+          <div class="group">
+            <label class="label" for="depth">Check up to</label>
+            <select class="field" id="depth">
+              <option value="100">100 per site</option>
+              <option value="300" selected>300 per site</option>
+              <option value="600">600 per site</option>
+              <option value="1000">1,000 per site</option>
+              <option value="2000">2,000 per site</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint">The sites can't search by mod list, so Packfinder checks this many results and keeps the ones that fit.</p>
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="btn primary" id="go">Search</button>
+        <button type="button" class="btn" id="reset">Reset</button>
+      </div>
+    </form>
+  </details>
+
+  <section class="results" aria-live="polite">
+    <div class="bar">
+      <div class="status" id="status"></div>
+      <label class="check" style="font-size:.85rem">Show by
+        <select class="field" id="view-sort" style="width:auto;padding:4px 8px">
+          <option value="">Search order</option>
+          <option value="downloads">Downloads</option>
+          <option value="updated">Recently updated</option>
+          <option value="newest">Newest</option>
+          <option value="mods-desc">Most mods</option>
+          <option value="mods-asc">Fewest mods</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+    </div>
+    <div class="suggest" id="suggest">Try:
+      <button type="button" data-try="create">Packs with Create</button>
+      <button type="button" data-try="sodium,iris">Packs with Sodium + Iris</button>
+      <button type="button" data-try="farmers-delight">Packs with Farmer's Delight</button>
+      <button type="button" data-try="!create" data-loader="fabric">Fabric packs without Create</button>
+    </div>
+    <div class="notes" id="notes"></div>
+    <div class="grid" id="grid"></div>
+    <div class="more-row" id="more-row" hidden>
+      <button type="button" class="btn" id="more">Check more results</button>
+      <button type="button" class="btn ghost" id="stop" hidden>Stop</button>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <form method="dialog" class="dlg" id="settings-form">
+    <div class="dlg-head"><h2>CurseForge settings</h2><button class="btn ghost" value="cancel" formnovalidate>Close</button></div>
+    <div class="dlg-body">
+      <p class="hint" style="font-size:.9rem;color:var(--ink)">CurseForge requires a key for every request. Get a free one at <a href="https://console.curseforge.com/" target="_blank" rel="noopener">console.curseforge.com</a>, then paste it here.</p>
+      <input class="field" id="cf-key" type="text" placeholder="$2a$10$…" aria-label="CurseForge API key" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore style="font-family:var(--font-mono);font-size:.85rem">
+      <p class="hint" id="key-status" aria-live="polite"></p>
+      <p class="hint">The key is saved in this browser only and sent only to api.curseforge.com.</p>
+      <label class="label" for="cf-proxy" style="margin-top:6px">Download relay (for "Must contain" on CurseForge)</label>
+      <p class="hint" style="font-size:.9rem;color:var(--ink)">CurseForge blocks web pages from reading the mod list inside modpack files. A free Cloudflare Worker can relay it. Paste your Worker's address here, e.g. <code>https://packfinder-relay.yourname.workers.dev</code>. Leave it empty to skip.</p>
+      <input class="field" id="cf-proxy" type="url" placeholder="https://….workers.dev" autocomplete="off" spellcheck="false" aria-label="Download relay address" style="font-family:var(--font-mono);font-size:.85rem">
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" value="save" id="save-key">Save key</button>
+        <button class="btn" id="test-key" type="button">Test key</button>
+        <button class="btn" value="clear" id="clear-key" type="button">Remove key</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="modlist">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="ml-title">Mods</h2><button class="btn ghost" id="ml-close" type="button">Close</button></div>
+    <div class="dlg-body">
+      <input class="field" id="ml-filter" type="search" placeholder="Filter this list" aria-label="Filter mod list">
+      <div class="hint" id="ml-meta"></div>
+      <div id="ml-body"></div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const MR_API = "https://api.modrinth.com/v2";
+const CF_API = "https://api.curseforge.com/v1";
+const CF_GAME = 432;
+const CF_CLASS = { mod: 6, modpack: 4471, resourcepack: 12, shader: 6552, datapack: 6945, plugin: 5 };
+const CF_LOADER = { forge: 1, fabric: 4, quilt: 5, neoforge: 6 };
+const CF_LOADER_NAME = { 1: "forge", 2: "cauldron", 3: "liteloader", 4: "fabric", 5: "quilt", 6: "neoforge" };
+const CF_SORT = { relevance: 2, downloads: 6, follows: 12, newest: 11, updated: 3 };
+const LOADERS = new Set(["forge", "fabric", "quilt", "neoforge", "liteloader", "rift", "modloader", "bukkit", "paper", "spigot", "purpur", "folia", "sponge", "velocity", "bungeecord", "waterfall", "iris", "optifine", "canvas", "vanilla", "minecraft", "datapack", "babric", "bta-babric", "java-agent", "legacy-fabric", "nilloader", "ornithe", "geyser"]);
+const FALLBACK_VERSIONS = ["1.21.4", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.17.1", "1.16.5", "1.12.2", "1.7.10"];
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
+const nfull = new Intl.NumberFormat();
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+function ago(d) {
+  const s = (d - Date.now()) / 1000, a = Math.abs(s);
+  if (a < 3600) return rtf.format(Math.round(s / 60), "minute");
+  if (a < 86400) return rtf.format(Math.round(s / 3600), "hour");
+  if (a < 86400 * 30) return rtf.format(Math.round(s / 86400), "day");
+  if (a < 86400 * 365) return rtf.format(Math.round(s / (86400 * 30)), "month");
+  return rtf.format(Math.round(s / (86400 * 365)), "year");
+}
+const sleep = (ms, signal) => new Promise((res, rej) => {
+  const t = setTimeout(res, ms);
+  signal?.addEventListener("abort", () => { clearTimeout(t); rej(new DOMException("Aborted", "AbortError")); }, { once: true });
+});
+const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+const isAbort = e => e && e.name === "AbortError";
+const noImg = '<span class="noimg" aria-hidden="true"></span>';
+const img = (src, cls = "") => src ? `<img src="${esc(src)}" alt="" loading="lazy" class="${cls}">` : noImg;
+
+const state = {
+  source: store.get("pf.source") || "modrinth",
+  cfKey: store.get("pf.cfkey") || "",
+  proxy: store.get("pf.proxy") || "",
+  include: [], exclude: [], match: "all",
+  cats: new Set(),
+  results: [], seen: new Set(), f: null, scan: null, abort: null, running: false,
+  versions: [], categories: [],
+};
+
+/* ---------- API helpers ---------- */
+async function mr(path, params = {}, signal) {
+  const u = new URL(MR_API + path);
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    u.searchParams.set(k, typeof v === "string" ? v : JSON.stringify(v));
+  }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let r;
+    try { r = await fetch(u, { signal }); }
+    catch (e) { if (isAbort(e)) throw e; throw new Error("Couldn't reach Modrinth. Check your connection. If this page is on a free Neocities site, Neocities blocks it from contacting other websites."); }
+    if (r.status === 429) {
+      const wait = Number(r.headers.get("x-ratelimit-reset")) || 10;
+      note("Modrinth asked to slow down. Waiting " + wait + "s, then continuing.", "warn", "mr-rate");
+      await sleep(wait * 1000, signal);
+      clearNote("mr-rate");
+      continue;
+    }
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("Modrinth returned an error (" + r.status + ").");
+    return r.json();
+  }
+  throw new Error("Modrinth kept rate-limiting. Wait a minute and search again.");
+}
+
+async function cf(path, { params = {}, body, signal } = {}) {
+  if (!state.cfKey) throw new Error("Add a CurseForge API key to search CurseForge.");
+  const u = new URL(CF_API + path);
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== "") u.searchParams.set(k, v);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    let r;
+    try {
+      r = await fetch(u, {
+        method: body ? "POST" : "GET", signal,
+        headers: { "x-api-key": state.cfKey, "Accept": "application/json", ...(body ? { "Content-Type": "application/json" } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (e) {
+      if (isAbort(e)) throw e;
+      throw new Error("Couldn't reach CurseForge. Check your connection and key. Some browsers block CurseForge's API on pages opened from a file; if so, serve this page from a website (for example GitHub Pages).");
+    }
+    if (r.status === 401 || r.status === 403) throw new Error(`CurseForge refused the request (error ${r.status}). Open "CurseForge key" and press "Test key" to see why.`);
+    if (r.status === 429) { await sleep(4000 * (attempt + 1), signal); continue; }
+    if (!r.ok) throw new Error("CurseForge returned an error (" + r.status + ").");
+    return r.json();
+  }
+  throw new Error("CurseForge kept rate-limiting. Wait a minute and search again.");
+}
+
+/* ---------- Normalizing results ---------- */
+function fromMR(h) {
+  const cats = h.display_categories || h.categories || [];
+  return {
+    source: "modrinth", key: "mr:" + h.project_id, id: h.project_id, slug: h.slug,
+    title: h.title, author: h.author, summary: h.description, icon: h.icon_url,
+    downloads: h.downloads, follows: h.follows,
+    updated: new Date(h.date_modified), created: new Date(h.date_created),
+    loaders: (h.categories || []).filter(c => LOADERS.has(c) && !["minecraft", "vanilla"].includes(c)),
+    categories: cats.filter(c => !LOADERS.has(c)),
+    versions: h.versions || [],
+    url: "https://modrinth.com/" + (h.project_type || "project") + "/" + h.slug,
+    latestVersion: h.latest_version, deps: null, matched: [], order: 0,
+  };
+}
+function cfMainFile(m) {
+  const files = m.latestFiles || [];
+  return files.find(f => f.id === m.mainFileId) || files.slice().sort((a, b) => new Date(b.fileDate) - new Date(a.fileDate))[0] || null;
+}
+function cfDeps(file) {
+  if (!file) return null;
+  const list = (file.dependencies || []).filter(d => d.relationType !== 5);
+  return { kind: "cf", modIds: new Set(list.map(d => d.modId)), list, count: list.length, fileName: file.displayName || file.fileName };
+}
+function fromCF(m) {
+  const idx = m.latestFilesIndexes || [];
+  const main = cfMainFile(m);
+  return {
+    source: "curseforge", key: "cf:" + m.id, id: m.id, slug: m.slug,
+    title: m.name, author: m.authors?.[0]?.name, summary: m.summary, icon: m.logo?.thumbnailUrl,
+    downloads: m.downloadCount, follows: m.thumbsUpCount,
+    updated: new Date(m.dateModified), created: new Date(m.dateReleased || m.dateCreated),
+    loaders: [...new Set(idx.map(i => CF_LOADER_NAME[i.modLoader]).filter(Boolean))],
+    categories: (m.categories || []).map(c => c.name),
+    versions: [...new Set(idx.map(i => i.gameVersion))],
+    url: m.links?.websiteUrl || "https://www.curseforge.com/minecraft/search?search=" + encodeURIComponent(m.name),
+    cfFile: main, classId: m.classId, deps: cfDeps(main), matched: [], order: 0,
+  };
+}
+function mrDepsFromVersion(v) {
+  const list = (v.dependencies || []).filter(d => d.dependency_type !== "incompatible");
+  return {
+    kind: "mr", list, count: list.length, versionNumber: v.version_number,
+    projectIds: new Set(list.map(d => d.project_id).filter(Boolean)),
+    versionIds: new Set(list.map(d => d.version_id).filter(Boolean)),
+    fileNames: list.map(d => (d.file_name || "").toLowerCase()).filter(Boolean),
+  };
+}
+async function attachMRDeps(items, signal) {
+  const ids = [...new Set(items.map(i => i.latestVersion).filter(Boolean))];
+  const byId = await idb.getMany("mr", ids);
+  const missing = ids.filter(id => !byId.has(id));
+  await Promise.all(chunk(missing, 80).map(async part => {
+    const vs = await mr("/versions", { ids: part }, signal);
+    const save = [];
+    for (const v of vs || []) {
+      const slim = {
+        version_number: v.version_number,
+        dependencies: (v.dependencies || []).map(d => ({ project_id: d.project_id, version_id: d.version_id, file_name: d.file_name, dependency_type: d.dependency_type })),
+      };
+      byId.set(v.id, slim);
+      save.push([v.id, slim]);
+    }
+    idb.putMany("mr", save);
+  }));
+  for (const it of items) {
+    const v = byId.get(it.latestVersion);
+    it.deps = v ? mrDepsFromVersion(v) : null;
+  }
+}
+
+/* ---------- Saved mod lists ----------
+   Mod lists only change when a pack publishes a new file, so they're saved in this
+   browser by file id. Repeat searches skip the network for packs already read. */
+const idb = (() => {
+  let dbp = null;
+  function open() {
+    if (!dbp) dbp = new Promise(res => {
+      try {
+        const rq = indexedDB.open("packfinder", 1);
+        rq.onupgradeneeded = () => { rq.result.createObjectStore("cf"); rq.result.createObjectStore("mr"); };
+        rq.onsuccess = () => res(rq.result);
+        rq.onerror = rq.onblocked = () => res(null);
+      } catch { res(null); }
+    });
+    return dbp;
+  }
+  async function getMany(store, keys) {
+    const out = new Map();
+    const db = await open();
+    if (!db || !keys.length) return out;
+    return new Promise(res => {
+      try {
+        const os = db.transaction(store).objectStore(store);
+        for (const k of keys) { const r = os.get(k); r.onsuccess = () => { if (r.result !== undefined) out.set(k, r.result); }; }
+        os.transaction.oncomplete = () => res(out);
+        os.transaction.onerror = os.transaction.onabort = () => res(out);
+      } catch { res(out); }
+    });
+  }
+  async function putMany(store, entries) {
+    const db = await open();
+    if (!db || !entries.length) return;
+    try { const os = db.transaction(store, "readwrite").objectStore(store); for (const [k, v] of entries) os.put(v, k); } catch {}
+  }
+  return { getMany, putMany };
+})();
+
+/* ---------- Mod-content matching ---------- */
+function hasMod(item, chip) {
+  const d = item.deps;
+  if (!d) return false;
+  if (d.kind === "mr") {
+    const m = chip.mr;
+    if (!m) return null;
+    if (d.projectIds.has(m.id)) return true;
+    if (m.versionIds) for (const v of d.versionIds) if (m.versionIds.has(v)) return true;
+    if (m.fileRe && d.fileNames.some(f => m.fileRe.test(f))) return true;
+    return false;
+  }
+  if (!chip.cf) return null;
+  return d.modIds.has(chip.cf.id);
+}
+function passes(it, f, stats) {
+  if (f.minDl && it.downloads < f.minDl) return false;
+  if (f.maxDl && it.downloads > f.maxDl) return false;
+  if (f.updatedDays && Date.now() - it.updated > f.updatedDays * 864e5) return false;
+  if (f.noWords.length) {
+    const t = (it.title + " " + it.summary).toLowerCase();
+    if (f.noWords.some(w => t.includes(w))) return false;
+  }
+  if (!f.needDeps) return true;
+  if (!it.deps || it.deps.count === 0) {
+    stats.noList[it.source] = (stats.noList[it.source] || 0) + 1;
+    if (f.include.length || f.minMods) return false;
+  }
+  const count = it.deps?.count ?? 0;
+  if (f.minMods && count < f.minMods) return false;
+  if (f.maxMods && it.deps && count > f.maxMods) return false;
+  if (f.include.length) {
+    const res = f.include.map(c => hasMod(it, c));
+    const ok = f.match === "all" ? res.every(r => r === true) : res.some(r => r === true);
+    if (!ok) return false;
+    it.matched = f.include.filter((c, i) => res[i] === true).map(c => c.title);
+  }
+  if (f.exclude.some(c => hasMod(it, c) === true)) return false;
+  return true;
+}
+
+/* ---------- Reading CurseForge modpack contents ----------
+   CurseForge's API doesn't list the mods in a modpack, but every pack zip has a
+   manifest.json that does. Range requests read only the zip's directory and that
+   one file, a few KB per pack instead of the whole download. */
+const cfManifestCache = new Map();
+const cdn = { fails: 0, blocked: false };
+function cdnRawUrls(file) {
+  const a = Math.floor(file.id / 1000), b = file.id % 1000, name = encodeURIComponent(file.fileName);
+  return [...new Set([`https://mediafilez.forgecdn.net/files/${a}/${b}/${name}`, file.downloadUrl, `https://edge.forgecdn.net/files/${a}/${b}/${name}`].filter(Boolean))];
+}
+function cdnUrls(file) {
+  const urls = cdnRawUrls(file);
+  return state.proxy ? urls.map(u => state.proxy + "/?url=" + encodeURIComponent(u)) : urls;
+}
+async function rangeFetch(url, start, end, total, signal) {
+  const r = await fetch(url, { headers: { Range: `bytes=${start}-${end}` }, signal });
+  if (r.status === 206) return new Uint8Array(await r.arrayBuffer());
+  if (r.status === 200) {
+    if (total > 8e6) { r.body?.cancel(); throw new Error("no range support"); }
+    return new Uint8Array(await r.arrayBuffer()).subarray(start, end + 1);
+  }
+  throw new Error("download server returned " + r.status);
+}
+async function inflateRaw(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Response(stream).text();
+}
+async function readZipEntry(url, total, wanted, signal) {
+  // Fast path: CurseForge exports usually put manifest.json first in the zip.
+  const headLen = Math.min(total, 32768);
+  const head = await rangeFetch(url, 0, headLen - 1, total, signal);
+  const hv = new DataView(head.buffer, head.byteOffset, head.byteLength);
+  if (head.length >= 30 && hv.getUint32(0, true) === 0x04034b50) {
+    const flags = hv.getUint16(6, true), method = hv.getUint16(8, true), size = hv.getUint32(18, true);
+    const nlen = hv.getUint16(26, true), elen = hv.getUint16(28, true);
+    const name = new TextDecoder().decode(head.subarray(30, 30 + nlen));
+    if (name === wanted && !(flags & 8) && size > 0 && (method === 0 || method === 8)) {
+      const start = 30 + nlen + elen;
+      const data = start + size <= head.length ? head.subarray(start, start + size) : (await rangeFetch(url, 0, start + size - 1, total, signal)).subarray(start, start + size);
+      return method === 0 ? new TextDecoder().decode(data) : inflateRaw(data);
+    }
+  }
+  const tailLen = Math.min(total, 65536 + 22);
+  const tailStart = total - tailLen;
+  const tail = await rangeFetch(url, tailStart, total - 1, total, signal);
+  const tv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+  let eocd = -1;
+  for (let i = tail.length - 22; i >= 0; i--) if (tv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error("not a zip");
+  const cdSize = tv.getUint32(eocd + 12, true), cdOff = tv.getUint32(eocd + 16, true);
+  if (cdOff === 0xffffffff) throw new Error("zip64 not supported");
+  const cd = cdOff >= tailStart ? tail.subarray(cdOff - tailStart, cdOff - tailStart + cdSize) : await rangeFetch(url, cdOff, cdOff + cdSize - 1, total, signal);
+  const cv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+  const dec = new TextDecoder();
+  let q = 0, entry = null;
+  while (q + 46 <= cd.length && cv.getUint32(q, true) === 0x02014b50) {
+    const nlen = cv.getUint16(q + 28, true), elen = cv.getUint16(q + 30, true), clen = cv.getUint16(q + 32, true);
+    if (dec.decode(cd.subarray(q + 46, q + 46 + nlen)) === wanted) {
+      entry = { method: cv.getUint16(q + 10, true), size: cv.getUint32(q + 20, true), off: cv.getUint32(q + 42, true) };
+      break;
+    }
+    q += 46 + nlen + elen + clen;
+  }
+  if (!entry) return null;
+  const want = Math.min(total - 1, entry.off + 30 + 1024 + entry.size);
+  let local = await rangeFetch(url, entry.off, want, total, signal);
+  const lv = new DataView(local.buffer, local.byteOffset, local.byteLength);
+  if (lv.getUint32(0, true) !== 0x04034b50) throw new Error("bad zip entry");
+  const start = 30 + lv.getUint16(26, true) + lv.getUint16(28, true);
+  if (start + entry.size > local.length) local = await rangeFetch(url, entry.off, entry.off + start + entry.size - 1, total, signal);
+  const data = local.subarray(start, start + entry.size);
+  if (entry.method === 0) return dec.decode(data);
+  if (entry.method === 8) return inflateRaw(data);
+  throw new Error("unsupported compression");
+}
+function manifestDeps(ids, file) {
+  if (!ids) return null;
+  return { kind: "cf", modIds: new Set(ids), list: ids.map(id => ({ modId: id, relationType: 6 })), count: ids.length, fileName: file.displayName || file.fileName };
+}
+function parseManifestIds(text) {
+  return [...new Set((JSON.parse(text.replace(/^﻿/, "")).files || []).map(f => f.projectID).filter(Boolean))];
+}
+function cfManifestDeps(file, signal) {
+  if (!file?.fileLength || !file.fileName) return Promise.resolve(null);
+  if (cfManifestCache.has(file.id)) return cfManifestCache.get(file.id);
+  const job = (async () => {
+    const saved = await idb.getMany("cf", [file.id]);
+    if (saved.has(file.id)) return manifestDeps(saved.get(file.id), file);
+    let lastErr;
+    for (const url of cdnUrls(file)) {
+      try {
+        const text = await readZipEntry(url, file.fileLength, "manifest.json", signal);
+        cdn.fails = 0;
+        const ids = text == null ? null : parseManifestIds(text);
+        idb.putMany("cf", [[file.id, ids]]);
+        return manifestDeps(ids, file);
+      } catch (e) {
+        if (isAbort(e)) throw e;
+        lastErr = e;
+      }
+    }
+    if (++cdn.fails >= 6) cdn.blocked = true;
+    throw lastErr;
+  })();
+  job.catch(e => { if (isAbort(e)) cfManifestCache.delete(file.id); });
+  cfManifestCache.set(file.id, job);
+  return job;
+}
+async function mapLimit(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (i < items.length) await fn(items[i++]);
+  }));
+}
+
+// A relay deployed from the current cors-worker.js reads up to 10 packs per request.
+const relay = { batch: null };
+async function relayBatch(files, signal) {
+  const r = await fetch(state.proxy + "/manifests", {
+    method: "POST", signal, headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ files: files.map(f => ({ id: f.id, size: f.fileLength, urls: cdnRawUrls(f) })) }),
+  });
+  if (r.status === 404 || r.status === 405) { relay.batch = false; return null; }
+  if (!r.ok) throw new Error("relay returned " + r.status);
+  relay.batch = true;
+  return (await r.json()).results || {};
+}
+async function attachCFManifests(items, signal) {
+  const todo = items.filter(it => it.classId === CF_CLASS.modpack && (!it.deps || !it.deps.count) && it.cfFile?.fileLength);
+  if (!todo.length) return;
+  const saved = await idb.getMany("cf", todo.map(it => it.cfFile.id));
+  let need = [];
+  for (const it of todo) {
+    if (saved.has(it.cfFile.id)) { const d = manifestDeps(saved.get(it.cfFile.id), it.cfFile); if (d) it.deps = d; }
+    else need.push(it);
+  }
+  if (need.length && state.proxy && relay.batch !== false && !cdn.blocked) {
+    const done = new Set();
+    await Promise.all(chunk(need, 10).map(async group => {
+      try {
+        const res = await relayBatch(group.map(it => it.cfFile), signal);
+        if (!res) return;
+        const save = [];
+        let errors = 0;
+        for (const it of group) {
+          const v = res[it.cfFile.id];
+          if (Array.isArray(v) || v === null) {
+            save.push([it.cfFile.id, v]); done.add(it);
+            const d = manifestDeps(v, it.cfFile); if (d) it.deps = d;
+          } else errors++;
+        }
+        idb.putMany("cf", save);
+        if (errors === group.length) { if (++cdn.fails >= 4) cdn.blocked = true; } else cdn.fails = 0;
+      } catch (e) { if (isAbort(e)) throw e; }
+    }));
+    need = need.filter(it => !done.has(it));
+  }
+  if (need.length && !cdn.blocked) {
+    await mapLimit(need, 12, async it => {
+      if (cdn.blocked) return;
+      try { const d = await cfManifestDeps(it.cfFile, signal); if (d) it.deps = d; }
+      catch (e) { if (isAbort(e)) throw e; }
+    });
+  }
+  if (cdn.blocked) note(state.proxy
+    ? "The download relay didn't work, so CurseForge packs can't be checked for mods. Check the relay address under \"CurseForge key\" and open it in a new tab: it should say \"Packfinder relay is running\"."
+    : "CurseForge blocks web pages from reading the mod list inside modpacks, so CurseForge packs can't be checked for mods yet. Set up the free download relay under \"CurseForge key\" to fix this. Modrinth results aren't affected.", "warn", "cdn");
+  if (state.proxy && relay.batch === false) note("Your download relay is an older version, so CurseForge checks are slower than they could be. Paste the newest cors-worker.js into the Worker and deploy it again for faster searches.", "warn", "relay-old");
+}
+
+/* ---------- Search pagers ---------- */
+function mrFacets(f) {
+  const facets = [["project_type:" + f.type]];
+  if (f.loader) facets.push(["categories:" + f.loader]);
+  if (f.version) facets.push(["versions:" + f.version]);
+  for (const c of f.cats) facets.push(["categories:" + c]);
+  if (f.env === "server") facets.push(["server_side:required", "server_side:optional"]);
+  if (f.env === "client-only") facets.push(["server_side:unsupported"]);
+  if (f.env === "server-only") facets.push(["client_side:unsupported"]);
+  if (f.oss) facets.push(["open_source:true"]);
+  return facets;
+}
+const PAGE_SIZE = { modrinth: 100, curseforge: 50 };
+const CF_MAX = 10000;
+async function fetchPage(name, f, offset, signal) {
+  if (name === "modrinth") {
+    const r = await mr("/search", { query: f.q || undefined, facets: mrFacets(f), index: f.sort, offset, limit: 100 }, signal);
+    const items = (r?.hits || []).map(fromMR);
+    items.forEach((it, i) => { it.order = offset + i; });
+    if (f.needDeps && items.length) await attachMRDeps(items, signal);
+    return { items, total: r?.total_hits ?? 0 };
+  }
+  const pageSize = Math.min(50, CF_MAX - offset);
+  if (pageSize <= 0) return { items: [], total: CF_MAX };
+  const r = await cf("/mods/search", {
+    signal, params: {
+      gameId: CF_GAME, classId: CF_CLASS[f.type], searchFilter: f.q, gameVersion: f.version,
+      modLoaderType: f.loader ? CF_LOADER[f.loader] : undefined,
+      sortField: CF_SORT[f.sort], sortOrder: f.sort === "relevance" && f.q ? undefined : "desc",
+      index: offset, pageSize,
+    },
+  });
+  const items = (r?.data || []).map(fromCF);
+  items.forEach((it, i) => { it.order = offset + i; });
+  if (f.needDeps && f.type === "modpack") await attachCFManifests(items, signal);
+  return { items, total: Math.min(r?.pagination?.totalCount ?? 0, CF_MAX) };
+}
+
+/* ---------- Reading the form ---------- */
+function readFilters() {
+  const num = id => { const v = parseInt($(id).value, 10); return Number.isFinite(v) && v > 0 ? v : 0; };
+  const f = {
+    q: $("#q").value.trim(), type: $("#type").value, version: $("#version").value, loader: $("#loader").value,
+    env: $("#env").value, oss: $("#oss").checked, sort: $("#sort").value, depth: parseInt($("#depth").value, 10),
+    cats: [...state.cats], minDl: num("#min-dl"), maxDl: num("#max-dl"),
+    updatedDays: parseInt($("#updated").value, 10) || 0,
+    noWords: $("#nowords").value.split(",").map(s => s.trim().toLowerCase()).filter(Boolean),
+    minMods: num("#min-mods"), maxMods: num("#max-mods"),
+    include: state.include.slice(), exclude: state.exclude.slice(), match: state.match,
+  };
+  f.needDeps = !!(f.include.length || f.exclude.length || f.minMods || f.maxMods);
+  return f;
+}
+
+/* ---------- Running a search ---------- */
+async function startSearch() {
+  state.abort?.abort();
+  const ctrl = new AbortController();
+  state.abort = ctrl;
+  clearNotes();
+  const f = readFilters();
+  state.f = f;
+  state.results = []; state.seen = new Set();
+  const sources = state.source === "both" ? ["modrinth", "curseforge"] : [state.source];
+  state.scan = { sources: [], stats: { noList: {} } };
+  for (const name of sources) {
+    if (name === "curseforge" && !state.cfKey) {
+      note("CurseForge needs an API key. Add one under \"CurseForge key\" at the top.", "err");
+      continue;
+    }
+    if (name === "curseforge" && !CF_CLASS[f.type]) continue;
+    state.scan.sources.push({ name, scanned: 0, total: null, next: 0, done: false, error: null });
+  }
+  renderAll();
+  if (!state.scan.sources.length) return;
+
+  // Make sure every chosen mod is linked to both sites and Modrinth version ids are loaded.
+  try {
+    const chips = [...f.include, ...f.exclude];
+    await Promise.all(chips.map(c => c.ready));
+    if (sources.includes("modrinth")) await Promise.all(chips.map(c => loadMrVersions(c, ctrl.signal)));
+    if (ctrl.signal.aborted) return;
+    for (const c of chips) {
+      for (const s of state.scan.sources) {
+        if (s.name === "modrinth" && !c.mr) note(`"${c.title}" isn't on Modrinth, so Modrinth results can't be checked for it.`, "warn");
+        if (s.name === "curseforge" && !c.cf) note(`"${c.title}" wasn't found on CurseForge, so CurseForge results can't be checked for it.`, "warn");
+      }
+    }
+  } catch (e) { if (isAbort(e)) return; }
+
+  await scanMore(f.needDeps || f.minDl || f.maxDl || f.updatedDays || f.noWords.length ? f.depth : Math.min(f.depth, 100), ctrl);
+}
+
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  setTimeout(() => { renderQueued = false; renderResults(); renderStatus(); }, 120);
+}
+async function scanMore(count, ctrl = state.abort) {
+  if (!state.scan || !ctrl) return;
+  const { signal } = ctrl;
+  state.running = true; renderStatus();
+  const runPage = async (s, offset) => {
+    const { items, total } = await fetchPage(s.name, state.f, offset, signal);
+    if (signal.aborted) return;
+    s.total = total; s.scanned += items.length;
+    for (const it of items) {
+      if (state.seen.has(it.key)) continue;
+      state.seen.add(it.key);
+      if (passes(it, state.f, state.scan.stats)) state.results.push(it);
+    }
+    scheduleRender();
+  };
+  await Promise.all(state.scan.sources.filter(s => !s.done).map(async s => {
+    const size = PAGE_SIZE[s.name];
+    const stopAt = s.next + count;
+    try {
+      if (s.total == null) { const first = s.next; s.next += size; await runPage(s, first); }
+      const offsets = [];
+      while (s.next < Math.min(stopAt, s.total)) { offsets.push(s.next); s.next += size; }
+      // Several pages at once; each page's mod lists are read in parallel too.
+      await mapLimit(offsets, s.name === "modrinth" ? 3 : 4, o => runPage(s, o));
+      if (s.next >= s.total) s.done = true;
+    } catch (e) {
+      if (isAbort(e)) return;
+      s.error = e.message; s.done = true;
+      note((s.name === "modrinth" ? "Modrinth: " : "CurseForge: ") + e.message, "err");
+    }
+  }));
+  if (state.abort !== ctrl) return;
+  state.running = false;
+  renderAll();
+}
+
+/* ---------- Mod chips ---------- */
+let chipSeq = 0;
+function fileReFor(slug) {
+  if (!slug || slug.length < 4) return null;
+  return new RegExp("^" + slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[-_+. ]", "i");
+}
+function addChip(list, pick) {
+  const key = (pick.source === "modrinth" ? "mr:" : "cf:") + pick.id;
+  if ([...state.include, ...state.exclude].some(c => c.keys.has(key))) return;
+  const chip = { uid: ++chipSeq, title: pick.title, keys: new Set([key]), mr: null, cf: null, linking: true };
+  if (pick.source === "modrinth") chip.mr = { id: pick.id, slug: pick.slug, fileRe: fileReFor(pick.slug) };
+  else chip.cf = { id: pick.id, slug: pick.slug };
+  chip.ready = linkChip(chip).finally(() => { chip.linking = false; renderChips(); });
+  state[list].push(chip);
+  renderChips();
+  return chip;
+}
+async function linkChip(chip) {
+  try {
+    if (!chip.mr && chip.cf) {
+      let p = await mr("/project/" + encodeURIComponent(chip.cf.slug));
+      if (!p || p.project_type !== "mod") {
+        const r = await mr("/search", { query: chip.title, facets: [["project_type:mod"]], limit: 5 });
+        const hit = r?.hits?.find(h => h.title.toLowerCase() === chip.title.toLowerCase());
+        p = hit ? { id: hit.project_id, slug: hit.slug } : null;
+      }
+      if (p) { chip.mr = { id: p.id, slug: p.slug, fileRe: fileReFor(p.slug) }; chip.keys.add("mr:" + p.id); }
+    }
+    if (!chip.cf && chip.mr && state.cfKey) {
+      let r = await cf("/mods/search", { params: { gameId: CF_GAME, classId: 6, slug: chip.mr.slug } });
+      let hit = r?.data?.[0];
+      if (!hit) {
+        r = await cf("/mods/search", { params: { gameId: CF_GAME, classId: 6, searchFilter: chip.title, pageSize: 10, sortField: 2, sortOrder: "desc" } });
+        hit = r?.data?.find(m => m.name.toLowerCase() === chip.title.toLowerCase());
+      }
+      if (hit) { chip.cf = { id: hit.id, slug: hit.slug }; chip.keys.add("cf:" + hit.id); }
+    }
+  } catch { /* linking is best effort */ }
+}
+async function loadMrVersions(chip, signal) {
+  if (!chip.mr || chip.mr.versionIds) return;
+  try {
+    const vs = await mr("/project/" + chip.mr.id + "/version", { include_changelog: false }, signal);
+    chip.mr.versionIds = new Set((vs || []).map(v => v.id));
+  } catch (e) { if (isAbort(e)) throw e; }
+}
+function renderChips() {
+  for (const list of ["include", "exclude"]) {
+    const el = list === "include" ? $("#inc-chips") : $("#exc-chips");
+    el.innerHTML = state[list].map(c => {
+      const mark = (site, linked) => `<b class="${c.linking && !linked ? "wait" : linked ? site : "off"}" title="${linked ? "Found on " : "Not found on "}${site === "mr" ? "Modrinth" : "CurseForge"}">${site === "mr" ? "MR" : "CF"}</b>`;
+      return `<span class="chip ${list === "exclude" ? "ex" : ""}"><span class="nm">${esc(c.title)}</span>
+        <span class="links">${mark("mr", !!c.mr)}${mark("cf", !!c.cf)}</span>
+        <button type="button" data-remove="${list}:${c.uid}" aria-label="Remove ${esc(c.title)}">×</button></span>`;
+    }).join("");
+  }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-remove]");
+  if (!b) return;
+  const [list, uid] = b.dataset.remove.split(":");
+  state[list] = state[list].filter(c => String(c.uid) !== uid);
+  renderChips();
+});
+
+/* ---------- Mod picker (autocomplete) ---------- */
+function makePicker(input, listEl, listName) {
+  let timer = 0, ctrl = null, picks = [];
+  const close = () => { listEl.hidden = true; };
+  async function run(q) {
+    ctrl?.abort(); ctrl = new AbortController();
+    const signal = ctrl.signal;
+    listEl.hidden = false;
+    listEl.innerHTML = '<div class="pick-empty"><span class="spin"></span> Searching…</div>';
+    const tasks = [
+      mr("/search", { query: q, facets: [["project_type:mod", "project_type:shader", "project_type:resourcepack"]], limit: 7, index: "relevance" }, signal)
+        .then(r => (r?.hits || []).map(h => ({ source: "modrinth", id: h.project_id, slug: h.slug, title: h.title, icon: h.icon_url, downloads: h.downloads }))),
+    ];
+    if (state.cfKey && state.source !== "modrinth") {
+      tasks.push(cf("/mods/search", { signal, params: { gameId: CF_GAME, classId: 6, searchFilter: q, pageSize: 7, sortField: 2, sortOrder: "desc" } })
+        .then(r => (r?.data || []).map(m => ({ source: "curseforge", id: m.id, slug: m.slug, title: m.name, icon: m.logo?.thumbnailUrl, downloads: m.downloadCount }))));
+    }
+    const settled = await Promise.allSettled(tasks);
+    if (signal.aborted) return;
+    picks = settled.flatMap(s => s.status === "fulfilled" ? s.value : []);
+    if (!picks.length) { listEl.innerHTML = '<div class="pick-empty">No mods found.</div>'; return; }
+    listEl.innerHTML = picks.map((p, i) => `<button type="button" class="pick-item" data-i="${i}">${img(p.icon)}<span>${esc(p.title)}</span>
+      <em>${nf.format(p.downloads || 0)}</em><span class="dot ${p.source === "modrinth" ? "mr" : "cf"}" style="flex:none" title="${p.source === "modrinth" ? "Modrinth" : "CurseForge"}"></span></button>`).join("");
+  }
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { close(); return; }
+    timer = setTimeout(() => run(q), 280);
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Escape") close();
+    if (e.key === "Enter") { e.preventDefault(); listEl.querySelector(".pick-item")?.click(); }
+    if (e.key === "ArrowDown") { e.preventDefault(); listEl.querySelector(".pick-item")?.focus(); }
+  });
+  listEl.addEventListener("click", e => {
+    const b = e.target.closest(".pick-item");
+    if (!b) return;
+    addChip(listName, picks[+b.dataset.i]);
+    input.value = ""; close(); input.focus();
+  });
+  listEl.addEventListener("keydown", e => {
+    const items = $$(".pick-item", listEl), i = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") { e.preventDefault(); items[Math.min(i + 1, items.length - 1)]?.focus(); }
+    if (e.key === "ArrowUp") { e.preventDefault(); i <= 0 ? input.focus() : items[i - 1].focus(); }
+    if (e.key === "Escape") { close(); input.focus(); }
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".picker") || !input.parentElement.contains(e.target)) close(); });
+}
+
+/* ---------- Rendering ---------- */
+const RELEASE_RE = /^\d+\.\d+(\.\d+)?$/;
+function cmpVer(a, b) {
+  const pa = a.split(".").map(Number), pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d; }
+  return 0;
+}
+function versionRange(vs) {
+  const rel = vs.filter(v => RELEASE_RE.test(v)).sort(cmpVer);
+  if (!rel.length) return "";
+  return rel.length === 1 ? rel[0] : rel[0] + " – " + rel[rel.length - 1];
+}
+function sortedResults() {
+  const list = state.results.slice(), how = $("#view-sort").value;
+  const by = {
+    downloads: (a, b) => b.downloads - a.downloads,
+    updated: (a, b) => b.updated - a.updated,
+    newest: (a, b) => b.created - a.created,
+    "mods-desc": (a, b) => (b.deps?.count ?? -1) - (a.deps?.count ?? -1),
+    "mods-asc": (a, b) => (a.deps?.count ?? 1e9) - (b.deps?.count ?? 1e9),
+    name: (a, b) => a.title.localeCompare(b.title),
+  }[how];
+  if (by) list.sort(by);
+  else if (state.source === "both" && state.f && state.f.sort !== "relevance") {
+    const key = state.f.sort;
+    list.sort((a, b) => ({ downloads: b.downloads - a.downloads, follows: b.follows - a.follows, newest: b.created - a.created, updated: b.updated - a.updated }[key] ?? a.order - b.order));
+  } else list.sort((a, b) => a.order - b.order);
+  return list;
+}
+function card(it, i) {
+  const range = versionRange(it.versions);
+  const showMods = (it.deps && it.deps.count > 0) || (it.source === "curseforge" && it.classId === CF_CLASS.modpack && it.cfFile);
+  return `<article class="card">
+    <div class="card-head">${img(it.icon)}
+      <div class="card-title">
+        <a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a>
+        <span class="by"><span class="src-tag ${it.source}">${it.source === "modrinth" ? "Modrinth" : "CurseForge"}</span>${it.author ? "by " + esc(it.author) : ""}</span>
+      </div>
+    </div>
+    <p class="summary">${esc(it.summary)}</p>
+    <div class="stats">
+      <span title="${nfull.format(it.downloads)} downloads"><b>${nf.format(it.downloads)}</b> downloads</span>
+      <span><b>${nf.format(it.follows || 0)}</b> ${it.source === "modrinth" ? "follows" : "likes"}</span>
+      <span title="${it.updated.toLocaleString()}">updated <b>${ago(it.updated)}</b></span>
+      ${it.deps?.count ? `<span><b>${it.deps.count}</b> ${state.f?.type === "modpack" ? "mods" : "dependencies"}</span>` : ""}
+    </div>
+    ${it.matched.length ? `<div class="tags">${it.matched.map(m => `<span class="tag hit">✓ ${esc(m)}</span>`).join("")}</div>` : ""}
+    <div class="tags">
+      ${it.loaders.map(l => `<span class="tag loader">${esc(l)}</span>`).join("")}
+      ${range ? `<span class="tag loader" style="text-transform:none">${esc(range)}</span>` : ""}
+      ${it.categories.slice(0, 4).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
+    </div>
+    <div class="card-foot">
+      ${(it.source === "modrinth" && it.latestVersion) || showMods ? `<button type="button" class="btn" data-mods="${i}">${state.f?.type === "modpack" ? "See mod list" : "See dependencies"}</button>` : ""}
+      <a class="btn ghost" href="${esc(it.url)}" target="_blank" rel="noopener" style="text-decoration:none">Open on ${it.source === "modrinth" ? "Modrinth" : "CurseForge"} ↗</a>
+    </div>
+  </article>`;
+}
+let shown = [];
+function renderResults() {
+  shown = sortedResults();
+  const grid = $("#grid");
+  if (!shown.length) {
+    grid.innerHTML = state.running
+      ? '<div class="empty" style="grid-column:1/-1"><span class="spin"></span> Checking results…</div>'
+      : state.scan?.sources.length
+        ? '<div class="empty" style="grid-column:1/-1">Nothing matched yet. Try "Check more results", loosen a filter, or switch matching to ANY.</div>'
+        : '<div class="empty" style="grid-column:1/-1">Pick your filters and press Search.</div>';
+    return;
+  }
+  grid.innerHTML = shown.map(card).join("");
+}
+function renderStatus() {
+  const el = $("#status");
+  if (!state.scan) { el.innerHTML = ""; return; }
+  const parts = state.scan.sources.map(s => `<span class="src"><span class="dot ${s.name === "modrinth" ? "mr" : "cf"}"></span>checked <strong>${nfull.format(s.scanned)}</strong>${s.total != null ? " of " + nfull.format(Math.min(s.total, s.name === "curseforge" ? 10000 : s.total)) : ""}</span>`);
+  parts.push(`<span><strong>${nfull.format(state.results.length)}</strong> match</span>`);
+  if (state.f?.needDeps) for (const s of state.scan.sources) {
+    const n = state.scan.stats.noList[s.name];
+    if (n) parts.push(`<span title="These have no mod list the page could read, so they can't be checked.">${nfull.format(n)} ${s.name === "modrinth" ? "Modrinth" : "CurseForge"} without a mod list</span>`);
+  }
+  if (state.running) parts.push('<span class="spin" aria-label="Searching"></span>');
+  el.innerHTML = parts.join("");
+  const canMore = state.scan.sources.some(s => !s.done);
+  $("#more-row").hidden = !(canMore || state.running);
+  $("#more").hidden = state.running || !canMore;
+  $("#stop").hidden = !state.running;
+  $("#more").textContent = `Check ${state.f?.depth || 300} more per site`;
+  $("#go").textContent = state.running ? "Searching…" : "Search";
+}
+function renderAll() { renderResults(); renderStatus(); }
+
+function note(text, kind = "warn", id) {
+  if (id && $(`#notes [data-id="${id}"]`)) return;
+  if ([...$("#notes").children].some(n => n.textContent === text)) return;
+  const d = document.createElement("div");
+  d.className = "note" + (kind === "err" ? " err" : "");
+  if (id) d.dataset.id = id;
+  d.textContent = text;
+  $("#notes").append(d);
+}
+function clearNote(id) { $(`#notes [data-id="${id}"]`)?.remove(); }
+function clearNotes() { $("#notes").innerHTML = ""; }
+
+/* ---------- Mod list dialog ---------- */
+let mlRows = [];
+async function openModList(it) {
+  const dlg = $("#modlist");
+  $("#ml-title").textContent = it.title;
+  $("#ml-meta").textContent = "";
+  $("#ml-filter").value = "";
+  $("#ml-body").innerHTML = '<p class="hint"><span class="spin"></span> Loading the list…</p>';
+  dlg.showModal();
+  try {
+    let deps = it.deps;
+    if (it.source === "curseforge" && (!deps || !deps.count) && it.cfFile && it.classId === CF_CLASS.modpack) {
+      $("#ml-body").innerHTML = '<p class="hint"><span class="spin"></span> Reading the pack\'s mod list from CurseForge…</p>';
+      try { const d = await cfManifestDeps(it.cfFile); if (d) deps = it.deps = d; }
+      catch { $("#ml-body").innerHTML = '<p class="note err">CurseForge\'s download server wouldn\'t let this page read the pack\'s mod list.</p>'; return; }
+    }
+    if (it.source === "modrinth" && !deps) {
+      const v = await mr("/version/" + it.latestVersion);
+      deps = it.deps = v ? mrDepsFromVersion(v) : null;
+    }
+    if (!deps || !deps.count) { $("#ml-body").innerHTML = '<p class="hint">This one has no mod list published on the site.</p>'; return; }
+    const matchedIds = new Set();
+    for (const c of state.include) { if (it.source === "modrinth" && c.mr) matchedIds.add(c.mr.id); if (it.source === "curseforge" && c.cf) matchedIds.add(c.cf.id); }
+    let rows = [];
+    if (deps.kind === "mr") {
+      const byVersion = deps.list.filter(d => !d.project_id && d.version_id).map(d => d.version_id);
+      const verToProj = new Map();
+      for (const part of chunk(byVersion, 80)) for (const v of (await mr("/versions", { ids: part })) || []) verToProj.set(v.id, v.project_id);
+      const pids = [...new Set([...deps.projectIds, ...verToProj.values()])];
+      const projects = new Map();
+      for (const part of chunk(pids, 80)) for (const p of (await mr("/projects", { ids: part })) || []) projects.set(p.id, p);
+      const types = new Map();
+      for (const d of deps.list) {
+        const pid = d.project_id || verToProj.get(d.version_id);
+        const p = pid && projects.get(pid);
+        if (p) { if (!types.has(p.id)) types.set(p.id, { id: p.id, slug: p.slug, title: p.title, icon: p.icon_url, url: `https://modrinth.com/${p.project_type}/${p.slug}`, kind: p.project_type, source: "modrinth", hit: matchedIds.has(p.id) }); }
+        else if (d.file_name) rows.push({ title: d.file_name, kind: "file only", url: "", hit: false });
+      }
+      rows = [...types.values(), ...rows];
+    } else {
+      const ids = [...deps.modIds];
+      const mods = [];
+      for (const part of chunk(ids, 100)) { const r = await cf("/mods", { body: { modIds: part } }); mods.push(...(r?.data || [])); }
+      const rel = new Map(deps.list.map(d => [d.modId, d.relationType]));
+      const REL = { 1: "embedded", 2: "optional", 3: "required", 4: "tool", 6: "included" };
+      rows = mods.map(m => ({ id: m.id, slug: m.slug, title: m.name, icon: m.logo?.thumbnailUrl, url: m.links?.websiteUrl, kind: REL[rel.get(m.id)] || "", source: "curseforge", hit: matchedIds.has(m.id) }));
+    }
+    rows.sort((a, b) => (b.hit - a.hit) || a.title.localeCompare(b.title));
+    mlRows = rows;
+    $("#ml-meta").textContent = `${rows.length} entries${deps.versionNumber ? " · version " + deps.versionNumber : ""}${deps.fileName ? " · " + deps.fileName : ""}`;
+    renderModList();
+  } catch (e) {
+    $("#ml-body").innerHTML = `<p class="note err">${esc(e.message)}</p>`;
+  }
+}
+function renderModList() {
+  const q = $("#ml-filter").value.trim().toLowerCase();
+  const rows = mlRows.filter(r => !q || r.title.toLowerCase().includes(q));
+  $("#ml-body").innerHTML = rows.length ? rows.map((r, i) => `<div class="modrow ${r.hit ? "hit" : ""}">${img(r.icon)}
+    ${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${r.hit ? "✓ " : ""}${esc(r.title)}</a>` : `<a>${esc(r.title)}</a>`}
+    <em>${esc(r.kind || "")}</em>
+    ${r.source ? `<button type="button" data-addmod="${mlRows.indexOf(r)}">+ filter</button>` : ""}</div>`).join("")
+    : '<p class="hint">Nothing in this list matches.</p>';
+}
+$("#ml-filter").addEventListener("input", renderModList);
+$("#ml-close").addEventListener("click", () => $("#modlist").close());
+$("#ml-body").addEventListener("click", e => {
+  const b = e.target.closest("[data-addmod]");
+  if (!b) return;
+  const r = mlRows[+b.dataset.addmod];
+  addChip("include", { source: r.source, id: r.id, slug: r.slug, title: r.title });
+  b.textContent = "added"; b.disabled = true;
+});
+$("#grid").addEventListener("click", e => {
+  const b = e.target.closest("[data-mods]");
+  if (b) openModList(shown[+b.dataset.mods]);
+});
+
+/* ---------- Tags from Modrinth ---------- */
+function fillVersions() {
+  const snaps = $("#snapshots").checked, sel = $("#version"), cur = sel.value;
+  const list = state.versions.length
+    ? state.versions.filter(v => snaps || v.version_type === "release").map(v => v.version)
+    : FALLBACK_VERSIONS;
+  sel.innerHTML = '<option value="">Any version</option>' + list.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  if (list.includes(cur)) sel.value = cur;
+}
+function fillCats() {
+  const type = $("#type").value;
+  const cats = state.categories.filter(c => c.project_type === type && c.header === "categories").map(c => c.name).sort();
+  for (const c of [...state.cats]) if (!cats.includes(c)) state.cats.delete(c);
+  $("#cats").innerHTML = cats.length
+    ? cats.map(c => `<button type="button" class="cat" data-cat="${esc(c)}" aria-pressed="${state.cats.has(c)}">${esc(c.replace(/-/g, " "))}</button>`).join("")
+    : '<span class="hint">No categories for this type.</span>';
+}
+$("#cats").addEventListener("click", e => {
+  const b = e.target.closest("[data-cat]");
+  if (!b) return;
+  const c = b.dataset.cat;
+  state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c);
+  b.setAttribute("aria-pressed", state.cats.has(c));
+});
+async function loadTags() {
+  const [vs, cats] = await Promise.allSettled([mr("/tag/game_version"), mr("/tag/category")]);
+  if (vs.status === "fulfilled" && vs.value) state.versions = vs.value;
+  if (cats.status === "fulfilled" && cats.value) state.categories = cats.value;
+  fillVersions(); fillCats();
+}
+
+/* ---------- Wiring ---------- */
+function setSource(src) {
+  state.source = src; store.set("pf.source", src);
+  for (const b of $$(".seg button")) b.setAttribute("aria-pressed", b.dataset.src === src);
+  if (src !== "modrinth" && !state.cfKey) $("#settings").showModal();
+}
+$$(".seg button").forEach(b => b.addEventListener("click", () => { setSource(b.dataset.src); if (src_ok()) startSearch(); }));
+function src_ok() { return state.source === "modrinth" || state.cfKey; }
+$$(".mini-seg button").forEach(b => b.addEventListener("click", () => {
+  state.match = b.dataset.match;
+  $$(".mini-seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+}));
+$("#search-form").addEventListener("submit", e => {
+  e.preventDefault();
+  if (matchMedia("(max-width: 860px)").matches) $("#filters").open = false;
+  startSearch();
+});
+$("#reset").addEventListener("click", () => {
+  $("#search-form").reset();
+  state.include = []; state.exclude = []; state.cats.clear(); state.match = "all";
+  $$(".mini-seg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.match === "all"));
+  renderChips(); fillVersions(); fillCats();
+});
+$("#type").addEventListener("change", fillCats);
+$("#snapshots").addEventListener("change", fillVersions);
+$("#view-sort").addEventListener("change", renderResults);
+$("#more").addEventListener("click", () => scanMore(state.f?.depth || 300));
+$("#stop").addEventListener("click", () => {
+  state.abort?.abort();
+  state.running = false;
+  for (const s of state.scan?.sources || []) s.done = true;
+  renderAll();
+});
+
+function cleanKey(v) {
+  return String(v || "").replace(/^\s*x-api-key\s*:\s*/i, "").replace(/["'`\s\u200b\ufeff]/g, "");
+}
+function describeKey(k) {
+  return k ? `Saved key: ${k.slice(0, 10)}…${k.slice(-4)} (${k.length} characters)` : "No key saved.";
+}
+async function testKey(key) {
+  const out = $("#key-status");
+  if (!key) { out.textContent = "Paste a key first."; return false; }
+  out.innerHTML = '<span class="spin"></span> Testing ' + esc(key.slice(0, 10)) + "…" + esc(key.slice(-4)) + " (" + key.length + " characters)…";
+  let r;
+  try {
+    r = await fetch(CF_API + "/games/" + CF_GAME, { headers: { "x-api-key": key, "Accept": "application/json" } });
+  } catch {
+    out.textContent = "Couldn't reach CurseForge from this page. The key may be fine, but the browser or the site hosting this page blocked the request."
+      + (location.protocol === "file:" ? " This page was opened from a file on your computer; try it on GitHub Pages instead." : "");
+    return false;
+  }
+  if (r.ok) { out.textContent = "The key works. CurseForge answered with the Minecraft game entry."; return true; }
+  let body = "";
+  try { body = (await r.text()).slice(0, 160); } catch {}
+  out.textContent = `CurseForge refused this key (error ${r.status}). Check that you copied the whole key with no missing characters. It should start with $2a$10$.`
+    + (location.protocol === "file:" ? " This page was opened from a file on your computer; CurseForge may refuse those, so also try it on GitHub Pages." : "")
+    + (body ? " CurseForge said: " + body : "");
+  return false;
+}
+$("#test-key").addEventListener("click", () => {
+  const k = cleanKey($("#cf-key").value);
+  $("#cf-key").value = k;
+  testKey(k);
+});
+$("#open-settings").addEventListener("click", () => {
+  $("#cf-proxy").value = state.proxy;
+  $("#cf-key").value = state.cfKey;
+  $("#key-status").textContent = describeKey(state.cfKey);
+  $("#settings").showModal();
+});
+$("#settings").addEventListener("close", () => {
+  if ($("#settings").returnValue === "save") {
+    state.cfKey = cleanKey($("#cf-key").value);
+    const proxy = $("#cf-proxy").value.trim().replace(/\/+$/, "");
+    if (proxy !== state.proxy) {
+      state.proxy = /^https:\/\//i.test(proxy) ? proxy : "";
+      store.set("pf.proxy", state.proxy || null);
+      cdn.fails = 0; cdn.blocked = false; cfManifestCache.clear();
+    }
+    store.set("pf.cfkey", state.cfKey || null);
+    renderKeyButton();
+    for (const c of [...state.include, ...state.exclude]) if (!c.cf) { c.linking = true; renderChips(); c.ready = linkChip(c).finally(() => { c.linking = false; renderChips(); }); }
+    if (state.cfKey && state.source !== "modrinth") startSearch();
+  } else if (!state.cfKey && state.source !== "modrinth") setSource("modrinth");
+});
+$("#clear-key").addEventListener("click", () => {
+  state.cfKey = ""; store.set("pf.cfkey", null); $("#cf-key").value = "";
+  renderKeyButton(); $("#settings").close("cancel");
+});
+function renderKeyButton() { $("#open-settings").textContent = state.cfKey ? "CurseForge key ✓" : "Add CurseForge key"; }
+
+$("#suggest").addEventListener("click", async e => {
+  const b = e.target.closest("[data-try]");
+  if (!b) return;
+  $("#type").value = "modpack"; fillCats();
+  $("#loader").value = b.dataset.loader || "";
+  state.include = []; state.exclude = [];
+  for (const raw of b.dataset.try.split(",")) {
+    const neg = raw.startsWith("!"), slug = raw.replace("!", "");
+    const p = await mr("/project/" + slug).catch(() => null);
+    if (p) addChip(neg ? "exclude" : "include", { source: "modrinth", id: p.id, slug: p.slug, title: p.title });
+  }
+  startSearch();
+});
+
+makePicker($("#inc-input"), $("#inc-list"), "include");
+makePicker($("#exc-input"), $("#exc-list"), "exclude");
+if (state.source !== "modrinth" && !state.cfKey) state.source = "modrinth";
+for (const b of $$(".seg button")) b.setAttribute("aria-pressed", b.dataset.src === state.source);
+renderKeyButton(); renderChips(); fillVersions();
+if (matchMedia("(max-width: 860px)").matches) $("#filters").open = false;
+let cspWarned = false;
+document.addEventListener("securitypolicyviolation", e => {
+  if (cspWarned || !/modrinth|curseforge/.test(e.blockedURI || "")) return;
+  cspWarned = true;
+  note("The website hosting this page blocks requests to Modrinth and CurseForge, so searches can't run here. Free Neocities sites do this. Host the page somewhere that allows it (GitHub Pages, Cloudflare Pages, Netlify), use a Neocities Supporter account, or open the file directly on your computer.", "err", "csp");
+});
+loadTags();
+startSearch();
+</script>
+</body>
+</html>
